@@ -63,9 +63,13 @@ class RingBuffer {
 
     RingBuffer(RingBuffer&& other) {
         std::swap(bufs_, other.bufs_);
-        r_idx_ = other.r_idx_.load();
-        w_idx_ = other.w_idx_.load();
+        r_idx_.store(other.r_idx_.load(std::memory_order_acquire),
+                     std::memory_order_relaxed);
+        w_idx_.store(other.w_idx_.load(std::memory_order_acquire),
+                     std::memory_order_relaxed);
     }
+
+    RingBuffer& operator=(RingBuffer&&) = delete;
 
     /**
      * Report the total capacity of allocated elements.
