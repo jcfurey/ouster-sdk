@@ -1100,10 +1100,10 @@ class LidarScanVizModel:
             # pixels in float16 can overflow even when the source values are valid.
             stats_dtype = (np.float32 if np.issubdtype(data.dtype, np.floating) and
                            data.dtype.itemsize < np.dtype(np.float32).itemsize else None)
-            comp_min = np.min(data, axis=0)
-            comp_max = np.max(data, axis=0)
-            comp_mean = np.mean(data, axis=0, dtype=stats_dtype)
-            comp_std = np.std(data, axis=0, dtype=stats_dtype)
+            comp_min = np.asarray(np.min(data, axis=0))
+            comp_max = np.asarray(np.max(data, axis=0))
+            comp_mean = np.asarray(np.mean(data, axis=0, dtype=stats_dtype))
+            comp_std = np.asarray(np.std(data, axis=0, dtype=stats_dtype))
 
             is_vector = channel_dimension == 3
 

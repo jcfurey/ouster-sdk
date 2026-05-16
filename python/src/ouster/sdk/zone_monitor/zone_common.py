@@ -41,8 +41,8 @@ class EmulatedZoneMon:
         self.live_zones = self.zone_set.power_on_live_ids
         self.debug = False
         self.max_counts: Dict[int, int] = {
-            zone_id: np.count_nonzero(zone.zrb.near_range_mm < zone.zrb.far_range_mm) for zone_id, zone in
-            zone_set.zones.items()
+            zone_id: int(np.count_nonzero(zone.zrb.near_range_mm < zone.zrb.far_range_mm))
+            for zone_id, zone in zone_set.zones.items()
         }
 
     def _calc_counts(self, range_field, bitmask_field):

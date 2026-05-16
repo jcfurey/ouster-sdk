@@ -532,7 +532,7 @@ class TrajectoryEvaluator(Poser):
             pose_base = self._poses_mat[-2]
         else:
             # within traj poses timestamps
-            curr_idx = bisect.bisect_right(self._ts_keys, ts)
+            curr_idx = bisect.bisect_right(self._ts_keys, float(ts))  # type: ignore[type-var]
             dt = (ts - self._ts_keys[curr_idx - 1]) / (
                 self._ts_keys[curr_idx] - self._ts_keys[curr_idx - 1])
             pose_d_dt = exp_pose6(self._deltas[curr_idx] * dt)
@@ -571,7 +571,7 @@ class TrajectoryEvaluator(Poser):
             else:
                 if curr_idx == 0:
                     # reach the data range by the curr_idx first
-                    curr_idx = bisect.bisect_right(self._ts_keys, ts[i])
+                    curr_idx = bisect.bisect_right(self._ts_keys, float(ts[i]))  # type: ignore[type-var]
                 elif ts[i] > self._ts_keys[curr_idx]:
                     # current pose knot (to the right) is already behind, need
                     # to advance to the next pose knot
@@ -587,7 +587,7 @@ class TrajectoryEvaluator(Poser):
                         # do bisect again, because it's a discontinuity here
                         # i.e. the current ts[i] is too far from the
                         # previous one [i-1]
-                        curr_idx = bisect.bisect_right(self._ts_keys, ts[i])
+                        curr_idx = bisect.bisect_right(self._ts_keys, float(ts[i]))  # type: ignore[type-var]
 
                 dts[i] = (ts[i] - self._ts_keys[curr_idx - 1]) / (
                     self._ts_keys[curr_idx] - self._ts_keys[curr_idx - 1])
