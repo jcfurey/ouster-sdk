@@ -257,7 +257,7 @@ def osf_parse(ctx: SourceCommandContext, click_ctx: click.core.Context,
     other_cnt = 0
 
     def proc_msgs(msgs: Iterator[osf.MessageRef]):
-        nonlocal ls_cnt, other_cnt, decode
+        nonlocal ls_cnt, other_cnt
         for m in msgs:
             if m.of(osf.LidarScanStream):
                 prefix = "Ls"

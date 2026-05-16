@@ -141,7 +141,6 @@ def _source_to_bag_iter(source: Union[Iterable[List[Optional[LidarScan]]], Packe
             writer.write(conns[2], packet.host_timestamp, data)
 
     def check_split():
-        nonlocal filename
         if split is not None:
             if os.path.getsize(filename) / 1000000 > split:
                 return True

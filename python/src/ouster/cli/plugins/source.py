@@ -826,7 +826,6 @@ def source_plumb(ctx: SourceCommandContext, click_ctx: click.core.Context) -> No
     assert ctx.scan_source is not None
 
     # just apply the plumb matrix we calculated above
-    global _plumb_matrix
     assert _plumb_matrix is not None
     for i, info in enumerate(ctx.scan_source.sensor_info):
         info.extrinsic = _plumb_matrix[i]
@@ -935,9 +934,9 @@ def source_stats(ctx: SourceCommandContext, verbose: bool) -> None:
     n_sensors = 0
 
     def stats_iter():
-        nonlocal count, incomplete_count, windows, verbose, start, end, incomplete_scans
+        nonlocal count, incomplete_count, start, end
         nonlocal start_sensor, end_sensor
-        nonlocal dimensions, missing_packets, missing_columns, n_sensors
+        nonlocal missing_packets, missing_columns, n_sensors
         ns_to_sec = 1.0 / 1000000000.0
         for l in scans():
             for i, scan in enumerate(l):
@@ -979,8 +978,6 @@ def source_stats(ctx: SourceCommandContext, verbose: bool) -> None:
     ctx.scan_iter = stats_iter  # type: ignore
 
     def exit_handler():
-        nonlocal count, incomplete_count, start, end, incomplete_scans, dimensions
-        nonlocal start_sensor, end_sensor
         ns_to_sec = 1.0 / 1000000000.0
         print("Scan Statistics:")
         print(f"  Count: {count}")
@@ -1803,7 +1800,6 @@ def process_commands(click_ctx: click.core.Context, callbacks: Iterable[SourceCo
                     if not no_progress:
                         bar.update(idx)
                     # drop incomplete scans
-                    nonlocal filter
                     if filter:
                         for i in range(0, len(scan)):
                             profile = scan[i].sensor_info.format.udp_profile_lidar
@@ -1864,7 +1860,6 @@ def process_commands(click_ctx: click.core.Context, callbacks: Iterable[SourceCo
             # Define a function to consume ctx.scan_iter
             def pipeline_flush():
                 try:
-                    global _viz_wants_cycle
                     do_loop = _viz_wants_cycle or loop
                     while True:
                         for scans in ctx.scan_iter():
