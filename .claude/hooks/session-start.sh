@@ -55,14 +55,17 @@ sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
     >/dev/null
 
 echo "[ouster-sdk hook] installing python lint/test packages..."
-python3 -m pip install --quiet --break-system-packages \
+python3 -m pip install --quiet --break-system-packages --force-reinstall \
     "flake8==7.1.2" \
     "mypy==1.14.1" \
-    "clang-format==14.0.0" \
+    "clang-format==14.0.0"
+python3 -m pip install --quiet --break-system-packages \
     "pytest>=7,<8" \
     pytest-xdist \
     pytest-asyncio \
-    "iniconfig<=2.1.0"
+    "iniconfig<=2.1.0" \
+    types-psutil \
+    types-waitress
 
 echo "[ouster-sdk hook] installing the python package in editable mode..."
 (
