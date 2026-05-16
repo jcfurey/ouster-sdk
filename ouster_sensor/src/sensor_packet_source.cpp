@@ -690,8 +690,13 @@ SensorPacketSource::InternalEvent SensorPacketSource::get_packet_internal(
         auto size =
             recvfrom(sock, reinterpret_cast<char*>(data.data()), 65535, 0,
                      reinterpret_cast<struct sockaddr*>(&from_addr), &addr_len);
-        if (size <= 0) {
-            continue;  // this is unexpected
+        if (size < 0) {
+            // recvfrom error (errno set); skip this socket and continue polling
+            continue;
+        }
+        if (size == 0) {
+            // legal zero-length UDP datagram; nothing useful to dispatch
+            continue;
         }
 
         sockaddr_in6* addr6 = reinterpret_cast<sockaddr_in6*>(&from_addr);
