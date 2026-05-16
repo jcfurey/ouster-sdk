@@ -221,9 +221,16 @@ void Field::swap(Field& other) noexcept {
 }
 
 bool Field::operator==(const Field& other) const {
-    return matches(other.desc()) &&
-           (std::memcmp(ptr_, other.ptr_, bytes()) == 0) &&
-           class_ == other.class_;
+    if (!matches(other.desc()) || class_ != other.class_) {
+        return false;
+    }
+    // memcmp is undefined behaviour when either pointer is null, even with
+    // size 0 (which happens for empty fields). Short-circuit before calling.
+    const size_t n = bytes();
+    if (n == 0) {
+        return ptr_ == other.ptr_;
+    }
+    return std::memcmp(ptr_, other.ptr_, n) == 0;
 }
 
 FieldView uint_view(const FieldView& other) {

@@ -144,7 +144,11 @@ voxel_style_mesh_components_from_range_images_with_lut(
     ouster::sdk::core::img_t<uint32_t> far_range_image_mm,
     const SensorInfo& metadata, const VertexLookupTable& vertex_lookup,
     bool add_faces, bool add_edges) {
-    auto normalize = [](const Eigen::Vector3f& vec) {
+    auto normalize = [](const Eigen::Vector3f& vec) -> Eigen::Vector3f {
+        // explicit return type forces eager evaluation; with `auto` Eigen
+        // returns a CwiseBinaryOp expression that lazily references the
+        // function-local vec.norm() temporary, producing stack-use-after-scope
+        // when the result is read by the caller.
         return vec / vec.norm();
     };
     vector<Vertex3f> vertices;
