@@ -404,11 +404,10 @@ InertialIntegrationImuDeskewMethod::calc_poses_with_motion_model(
     // from a stalled IMU) to avoid producing NaN.
     const double pose_dt = ts_list_.back() - ts_list_.front();
     Eigen::Vector3d current_linear_velocity_world_frame =
-        pose_dt > 0.0
-            ? Eigen::Vector3d{(pose_list_.back().block<3, 1>(0, 3) -
-                               pose_list_.front().block<3, 1>(0, 3)) /
-                              pose_dt}
-            : Eigen::Vector3d::Zero();
+        pose_dt > 0.0 ? Eigen::Vector3d{(pose_list_.back().block<3, 1>(0, 3) -
+                                         pose_list_.front().block<3, 1>(0, 3)) /
+                                        pose_dt}
+                      : Eigen::Vector3d::Zero();
 
     // TODO[UN]: we need to skip imu measurements for timestamps earlier than
     // last_timestamp and feed in poses from last scan set or alter the logic

@@ -38,7 +38,6 @@ using ouster::sdk::sensor::Sensor;
 using ouster::sdk::sensor::SensorPacketSource;
 using ouster::sdk::sensor::SensorScanSource;
 
-
 class PyPacketSource : public ouster::sdk::core::PacketSource {
     mutable std::vector<std::shared_ptr<SensorInfo>> sensor_info_;
 

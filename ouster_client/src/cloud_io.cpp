@@ -240,9 +240,8 @@ PointCloudXYZf read_pointcloud(const std::string& filename) {
                 const size_t src_idx =
                     static_cast<size_t>(i) * static_cast<size_t>(stride) +
                     static_cast<size_t>(field.offset);
-                const size_t dst_idx =
-                    static_cast<size_t>(i) * 3 +
-                    static_cast<size_t>(idx_it->second);
+                const size_t dst_idx = static_cast<size_t>(i) * 3 +
+                                       static_cast<size_t>(idx_it->second);
                 memcpy(&pts[dst_idx], &data[src_idx], 4);
             }
         }
