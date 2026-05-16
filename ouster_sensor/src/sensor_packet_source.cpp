@@ -702,14 +702,16 @@ SensorPacketSource::InternalEvent SensorPacketSource::get_packet_internal(
         sockaddr_in6* addr6 = reinterpret_cast<sockaddr_in6*>(&from_addr);
         sockaddr_in* addr4 = reinterpret_cast<sockaddr_in*>(&from_addr);
         int source = -1;
-        if (from_addr.ss_family == AF_INET6) {
+        if (from_addr.ss_family == AF_INET6 &&
+            addr_len >= sizeof(sockaddr_in6)) {
             for (const auto& addr : addresses6_) {
                 if (memcmp(addr6->sin6_addr.s6_addr, addr.address, 16) == 0) {
                     source = addr.sensor_index;
                     break;
                 }
             }
-        } else {
+        } else if (from_addr.ss_family == AF_INET &&
+                   addr_len >= sizeof(sockaddr_in)) {
             for (const auto& addr : addresses4_) {
                 if (addr4->sin_addr.s_addr == addr.address) {
                     source = addr.sensor_index;
