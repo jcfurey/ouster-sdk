@@ -623,6 +623,12 @@ static PacketType get_packet_type(const PacketFormat& format, uint8_t* buf,
         return PacketType::Imu;
     }
 
+    // Non-legacy profiles read packet_type from the packet header; reject
+    // datagrams too short to contain it so we don't classify on garbage bytes
+    // left in the receive buffer.
+    if (size < format.packet_header_size) {
+        return PacketType::Unknown;
+    }
     uint16_t type = format.packet_type(buf);
     switch (type) {
         case 0x01:
@@ -684,21 +690,28 @@ SensorPacketSource::InternalEvent SensorPacketSource::get_packet_internal(
         auto size =
             recvfrom(sock, reinterpret_cast<char*>(data.data()), 65535, 0,
                      reinterpret_cast<struct sockaddr*>(&from_addr), &addr_len);
-        if (size <= 0) {
-            continue;  // this is unexpected
+        if (size < 0) {
+            // recvfrom error (errno set); skip this socket and continue polling
+            continue;
+        }
+        if (size == 0) {
+            // legal zero-length UDP datagram; nothing useful to dispatch
+            continue;
         }
 
         sockaddr_in6* addr6 = reinterpret_cast<sockaddr_in6*>(&from_addr);
         sockaddr_in* addr4 = reinterpret_cast<sockaddr_in*>(&from_addr);
         int source = -1;
-        if (from_addr.ss_family == AF_INET6) {
+        if (from_addr.ss_family == AF_INET6 &&
+            addr_len >= sizeof(sockaddr_in6)) {
             for (const auto& addr : addresses6_) {
                 if (memcmp(addr6->sin6_addr.s6_addr, addr.address, 16) == 0) {
                     source = addr.sensor_index;
                     break;
                 }
             }
-        } else {
+        } else if (from_addr.ss_family == AF_INET &&
+                   addr_len >= sizeof(sockaddr_in)) {
             for (const auto& addr : addresses4_) {
                 if (addr4->sin_addr.s_addr == addr.address) {
                     source = addr.sensor_index;

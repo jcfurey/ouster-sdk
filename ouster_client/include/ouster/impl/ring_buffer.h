@@ -63,9 +63,13 @@ class RingBuffer {
 
     RingBuffer(RingBuffer&& other) {
         std::swap(bufs_, other.bufs_);
-        r_idx_ = other.r_idx_.load();
-        w_idx_ = other.w_idx_.load();
+        r_idx_.store(other.r_idx_.load(std::memory_order_acquire),
+                     std::memory_order_relaxed);
+        w_idx_.store(other.w_idx_.load(std::memory_order_acquire),
+                     std::memory_order_relaxed);
     }
+
+    RingBuffer& operator=(RingBuffer&&) = delete;
 
     /**
      * Report the total capacity of allocated elements.
@@ -121,8 +125,14 @@ class RingBuffer {
 
     /**
      * Flush the ring buffer, making it empty.
+     *
+     * NOTE: unlike push()/pop(), this races against in-flight producers and
+     * consumers; callers must serialise flush() externally.
      */
-    void flush() { r_idx_ = w_idx_.load(); };
+    void flush() {
+        r_idx_.store(w_idx_.load(std::memory_order_acquire),
+                     std::memory_order_release);
+    };
 
     /**
      * Atomically increment read index.
@@ -133,9 +143,10 @@ class RingBuffer {
         if (empty()) {
             throw std::underflow_error("popped an empty ring buffer");
         }
-        size_t read_idx = r_idx_.load();
-        while (!r_idx_.compare_exchange_strong(read_idx,
-                                               (read_idx + 1) % _capacity())) {
+        size_t read_idx = r_idx_.load(std::memory_order_acquire);
+        while (!r_idx_.compare_exchange_weak(
+            read_idx, (read_idx + 1) % _capacity(), std::memory_order_release,
+            std::memory_order_acquire)) {
         }
     }
 
@@ -148,10 +159,11 @@ class RingBuffer {
         if (full()) {
             throw std::overflow_error("pushed a full ring buffer");
         }
-        size_t write_idx = r_idx_.load();
+        size_t write_idx = w_idx_.load(std::memory_order_acquire);
         // atomic increment modulo
-        while (!w_idx_.compare_exchange_strong(write_idx,
-                                               (write_idx + 1) % _capacity())) {
+        while (!w_idx_.compare_exchange_weak(
+            write_idx, (write_idx + 1) % _capacity(), std::memory_order_release,
+            std::memory_order_acquire)) {
         }
     }
 };

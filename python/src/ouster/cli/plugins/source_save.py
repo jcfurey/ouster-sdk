@@ -160,7 +160,7 @@ def source_save_osf(ctx: SourceCommandContext, prefix: str, dir: str, filename: 
     LEGACY_DTYPE_KINDS = ("u", "i", "f")  # unsigned int, signed int, float
 
     def write_osf(scan: LidarScan, index: int):
-        nonlocal wrote_scans, last_ts, dropped_scans, osf_writer, filename, file_number, need_split
+        nonlocal wrote_scans, dropped_scans, osf_writer, filename, file_number, need_split
         if legacy:
             # `save --legacy` is for backwards compatibility with SDK 0.12-0.15.
             # Older versions only support standard numeric ChanFieldTypes (UINT*, INT*, FLOAT*).
@@ -224,7 +224,7 @@ def source_save_osf(ctx: SourceCommandContext, prefix: str, dir: str, filename: 
     def save_iter():
         try:
             # only save the first loop
-            nonlocal saved
+            nonlocal saved  # noqa: F824
             if saved:
                 for s in scans():
                     yield s
@@ -369,7 +369,7 @@ def source_to_csv_iter(scan_iter: Iterator[List[Optional[LidarScan]]], infos: Li
     saved = False
 
     def save_iter():
-        nonlocal field_names, field_fmts, saved
+        nonlocal saved
         try:
             if saved:
                 for scan in scan_iter():
@@ -589,7 +589,6 @@ def save_pcap_impl(source: Union[Iterable[List[Optional[LidarScan]]], PacketSour
                             "127.0.0.1", port, port, packet.buf, ts)
 
     def check_split():
-        nonlocal pcap_filename
         if split is not None:
             if os.path.getsize(pcap_filename) / 1000000 > split:
                 return True
@@ -645,7 +644,7 @@ def save_pcap_impl(source: Union[Iterable[List[Optional[LidarScan]]], PacketSour
         def save_iter():
             try:
                 # only save the first loop
-                nonlocal pcap_record_handle
+                nonlocal pcap_record_handle  # noqa: F824
                 if pcap_record_handle is None:
                     for c in source():
                         yield c

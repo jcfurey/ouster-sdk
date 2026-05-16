@@ -50,7 +50,8 @@ TEST_F(OsfFileTest, OpeningANonExistentFileThrows) {
             } catch (const std::runtime_error& e) {
                 // exact error message is different between Linux and Windows,
                 // of course
-                EXPECT_TRUE(has_substr(e.what(), "Read failure"));
+                EXPECT_TRUE(has_substr(e.what(), "Failed to open OSF file") ||
+                            has_substr(e.what(), "Read failure"));
                 throw;
             }
         },

@@ -364,7 +364,6 @@ OsfScanSource::OsfScanSource(const std::string& file,
         }
 
         // reopen
-        reader_.reset();
         reader_ = std::make_unique<ouster::sdk::osf::Reader>(file);
         indexed_ = true;
     }

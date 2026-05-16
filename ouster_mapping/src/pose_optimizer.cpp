@@ -377,8 +377,13 @@ class PoseOptimizer::Impl {
             auto& node_ptr = timestamp_node_entry.second;
             if (!node_ptr) continue;
             PoseH updated_pose = transform * PoseH(node_ptr->get_pose());
-            node_ptr->rotation =
-                Eigen::Quaterniond(updated_pose.r()).normalized();
+            Eigen::Quaterniond q(updated_pose.r());
+            if (q.norm() > 0.0) {
+                q.normalize();
+            } else {
+                q = Eigen::Quaterniond::Identity();
+            }
+            node_ptr->rotation = q;
             node_ptr->position = updated_pose.t();
             node_ptr->update_pose();
         }

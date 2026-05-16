@@ -117,7 +117,10 @@ def update_fw(sensor, fw, expected_version = None, timeout = 120):
     headers["Content-Type"] = "application/octet-stream"
     print("Uploading fw...")
 
-    res = requests.post("http://" + sensor + "/api/v1/system/firmware", data=open(fw, 'rb'), headers = headers)
+    with open(fw, 'rb') as fw_file:
+        res = requests.post(
+            "http://" + sensor + "/api/v1/system/firmware",
+            data=fw_file, headers=headers)
     if res.status_code != 200 and res.status_code != 204:
         print("Upload failed!", res.text)
         return False

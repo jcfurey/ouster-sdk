@@ -1,0 +1,132 @@
+name: PR Sanity Checks
+
+on:
+  pull_request:
+    branches: [master]
+
+jobs:
+  revert-regression:
+    name: detect re-introduced regressions
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # need history to scan recent fix commits on base
+          fetch-depth: 0
+      - name: fetch base
+        run: git fetch origin ${{ github.event.pull_request.base.ref }} --depth=300
+      - name: run revert-regression check
+        run: |
+          python3 .github/scripts/check_revert_regression.py \
+            --base origin/${{ github.event.pull_request.base.ref }} \
+            --head HEAD \
+            --window 200
+
+  clang-tidy:
+    name: clang-tidy on changed files
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: fetch base
+        run: git fetch origin ${{ github.event.pull_request.base.ref }} --depth=50
+      - name: install python
+        run: sudo apt-get install -y python3 python3-pip python3-venv
+      - name: install build deps
+        run: |
+          sudo add-apt-repository -y universe
+          sudo apt-get update -qq
+          # libceres-dev pulls libgoogle-glog-dev which depends on libunwind;
+          # install it explicitly so the apt resolver doesn't get stuck on
+          # the alternation in libgoogle-glog-dev's Depends.
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y \
+              libunwind-dev \
+              ninja-build \
+              libeigen3-dev libtins-dev libpcap-dev libcurl4-openssl-dev \
+              build-essential cmake zlib1g-dev libglfw3-dev \
+              libpng-dev libflatbuffers-dev libtbb-dev robin-map-dev \
+              libceres-dev libzstd-dev libzip-dev libssl-dev libgtest-dev
+          # jammy ships clang-tidy 14; the project requires >= 16. Use the
+          # PyPI wheel, same pattern the existing lint job uses for
+          # clang-format.
+          python3 -m pip install --quiet --user \
+              "GitPython>=3.1" click flufl.lock pybind11 \
+              "clang-tidy>=18.0,<19"
+          # prepend the pip --user bin dir so the wheel's clang-tidy wins
+          # over the apt-installed 14.
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+      - name: cmake configure (generates compile_commands.json)
+        run: |
+          cmake -S . -B build -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+            -DBUILD_TESTING=ON -DBUILD_EXAMPLES=ON
+      - name: build generated headers
+        # clang-tidy needs the flatbuffers-generated headers to exist before
+        # it can parse files that include them
+        run: cmake --build build --target cpp_gen ouster_generate_header -j$(nproc)
+      - name: run clang-tidy on changed files
+        run: |
+          which clang-tidy
+          clang-tidy --version
+          python3 ./scripts/dev.py lint clang-tidy \
+            --use-system-libs \
+            --diff-against origin/${{ github.event.pull_request.base.ref }} \
+            --quiet \
+            --threads $(nproc)
+
+  sanitizer-build:
+    name: ${{ matrix.sanitizer }} build + ctest
+    runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - sanitizer: asan-ubsan
+            # alignment is excluded: parsing.cpp and a few peers do
+            # documented unaligned 8-byte reads on packet bytes for perf
+            # (see parsing.cpp:41 for the contract); flagging them as UB
+            # would drown the real findings in noise. The proper long-term
+            # fix is to swap the reinterpret_cast for std::memcpy, which
+            # compilers lower to identical assembly.
+            flags: "-fsanitize=address,undefined -fno-sanitize=alignment -fno-omit-frame-pointer -fno-sanitize-recover=undefined"
+            ld_flags: "-fsanitize=address,undefined"
+          - sanitizer: tsan
+            flags: "-fsanitize=thread -fno-omit-frame-pointer"
+            ld_flags: "-fsanitize=thread"
+    steps:
+      - uses: actions/checkout@v4
+      - name: install python
+        run: sudo apt-get install -y python3 python3-pip python3-venv
+      - name: install deps
+        run: |
+          sudo add-apt-repository -y universe
+          sudo apt-get update -qq
+          # see clang-tidy job for the libunwind-dev rationale
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y \
+              libunwind-dev \
+              ninja-build \
+              libeigen3-dev libtins-dev libpcap-dev libcurl4-openssl-dev \
+              build-essential cmake zlib1g-dev libglfw3-dev \
+              libpng-dev libflatbuffers-dev libtbb-dev robin-map-dev \
+              libceres-dev libzstd-dev libzip-dev libssl-dev libgtest-dev
+      - name: cmake configure (${{ matrix.sanitizer }})
+        run: |
+          cmake -S . -B build -G Ninja \
+            -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+            -DBUILD_TESTING=ON \
+            -DBUILD_EXAMPLES=OFF \
+            -DBUILD_PYTHON_MODULE=OFF \
+            -DCMAKE_C_FLAGS="${{ matrix.flags }}" \
+            -DCMAKE_CXX_FLAGS="${{ matrix.flags }}" \
+            -DCMAKE_EXE_LINKER_FLAGS="${{ matrix.ld_flags }}" \
+            -DCMAKE_SHARED_LINKER_FLAGS="${{ matrix.ld_flags }}"
+      - name: build
+        run: cmake --build build -j$(nproc)
+      - name: ctest
+        env:
+          ASAN_OPTIONS: "detect_leaks=1:halt_on_error=1:abort_on_error=1:print_stacktrace=1"
+          UBSAN_OPTIONS: "halt_on_error=1:abort_on_error=1:print_stacktrace=1"
+          TSAN_OPTIONS: "halt_on_error=1:second_deadlock_stack=1"
+        run: cd build && ctest -j$(nproc) --output-on-failure

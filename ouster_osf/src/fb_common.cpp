@@ -346,13 +346,28 @@ void fb_restore_channels(
     std::vector<std::future<void>> futures;
 #endif
 
+    if (fb_channels == nullptr) {
+        throw std::runtime_error(
+            "fb_restore_channels: channels vector is null");
+    }
+    if (fb_channels->size() < field_types.size()) {
+        throw std::runtime_error(
+            "fb_restore_channels: channel vector smaller than field types");
+    }
+
     for (size_t i = 0; i < field_types.size(); i++) {
         // only decode fields in the destination lidar scan
         if (!scan.has_field(field_types[i].name)) {
             continue;
         }
 
-        auto channel_buffer = fb_channels->Get(i)->buffer();
+        auto fb_channel = fb_channels->Get(i);
+        if (fb_channel == nullptr || fb_channel->buffer() == nullptr) {
+            throw std::runtime_error(
+                "fb_restore_channels: missing channel at index " +
+                std::to_string(i));
+        }
+        auto channel_buffer = fb_channel->buffer();
 
         impl::EncodedScanChannelData data;
         data.data_internal = channel_buffer->data();

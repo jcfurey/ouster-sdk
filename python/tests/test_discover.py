@@ -7,6 +7,7 @@
 
 import packaging  # TODO remove
 import importlib  # TODO remove
+import socket
 from sys import version_info
 import pytest
 import asyncio
@@ -16,6 +17,17 @@ from ouster.cli.plugins.discover import\
     parse_scope_id, format_hostname_for_url, \
     get_output_for_sensor, get_text_for_oserror, is_link_local_ipv6_address_and_missing_scope_id, \
     AsyncServiceDiscovery
+
+
+def _ipv6_available() -> bool:
+    try:
+        socket.socket(socket.AF_INET6, socket.SOCK_DGRAM).close()
+        return True
+    except OSError:
+        return False
+
+
+_HAS_IPV6 = _ipv6_available()
 
 
 def test_format_hostname_for_url():
@@ -135,6 +147,7 @@ async def create_future_task_for_info(asd):
 
 
 @pytest.mark.asyncio
+@pytest.mark.skipif(not _HAS_IPV6, reason="IPv6 stack not available in this environment")
 async def test_fleetsw_5814():
     """it doesn't raise a RuntimeError due to a future being submitted after executor shutdown"""
     timeout = 0.1

@@ -38,8 +38,6 @@ using ouster::sdk::sensor::Sensor;
 using ouster::sdk::sensor::SensorPacketSource;
 using ouster::sdk::sensor::SensorScanSource;
 
-static std::map<void*, py::object> holders;
-
 class PyPacketSource : public ouster::sdk::core::PacketSource {
     mutable std::vector<std::shared_ptr<SensorInfo>> sensor_info_;
 
@@ -183,7 +181,7 @@ class MultiWrapper : public ouster::sdk::core::MultiScanSource {
         const std::vector<std::shared_ptr<ouster::sdk::core::ScanSource>>& srcs)
         : ouster::sdk::core::MultiScanSource(srcs) {}
 
-    ~MultiWrapper() { holders.erase(this); }
+    py::object holder;
 };
 
 void init_client_scan_source(py::module& module, py::module& /*unused*/) {
@@ -653,7 +651,7 @@ void init_client_scan_source(py::module& module, py::module& /*unused*/) {
                  auto sources = py::cast<std::vector<
                      std::shared_ptr<ouster::sdk::core::ScanSource>>>(objs);
                  auto out = new MultiWrapper(sources);
-                 holders[out] = objs;
+                 out->holder = objs;
                  return out;
              }),
              py::arg("sources"));

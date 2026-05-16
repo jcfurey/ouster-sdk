@@ -144,8 +144,13 @@ voxel_style_mesh_components_from_range_images_with_lut(
     ouster::sdk::core::img_t<uint32_t> far_range_image_mm,
     const SensorInfo& metadata, const VertexLookupTable& vertex_lookup,
     bool add_faces, bool add_edges) {
-    auto normalize = [](const Eigen::Vector3f& vec) {
-        return vec / vec.norm();
+    auto normalize = [](Eigen::Vector3f vec) {
+        // Pass-by-value so the lambda owns a stable Vector3f, then
+        // normalise in place. Avoids the Eigen expression template that
+        // previously held a const-ref to the function-local vec.norm()
+        // temporary (ASan: stack-use-after-scope).
+        vec.normalize();
+        return vec;
     };
     vector<Vertex3f> vertices;
     vector<uint32_t> edges;
@@ -178,7 +183,10 @@ voxel_style_mesh_components_from_range_images_with_lut(
             // The per-pixel center direction is not shared, so calculate it
             // here.
             const auto center_direction = direction_rot(metadata, row, col);
-            const auto face_normal = -normalize(center_direction);
+            // Explicit Vector3f type: `-normalize(...)` is a CwiseUnaryOp
+            // expression that would otherwise hold a const-ref to the
+            // destroyed temporary returned by normalize().
+            const Eigen::Vector3f face_normal = -normalize(center_direction);
 
             // Get the four corners for pixel (row,col) from the shared vertex
             // lookup table. Pixel (row,col) is defined by vertices (row,col),

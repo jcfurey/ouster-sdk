@@ -140,11 +140,15 @@ int64_t PcapReader::current_offset() const {
     int64_t ret = FTELL(impl_->pcap_reader_internals);
 
     if (ret == -1L) {
+        const int ftell_errno = errno;
         if (fclose(impl_->pcap_reader_internals) != 0) {
-            throw std::runtime_error("fclose error: errno " +
-                                     std::to_string(errno));
+            throw std::runtime_error(
+                "fclose error after ftell failure: fclose errno " +
+                std::to_string(errno) + ", original ftell errno " +
+                std::to_string(ftell_errno));
         }
-        throw std::runtime_error("ftell error: errno " + std::to_string(errno));
+        throw std::runtime_error("ftell error: errno " +
+                                 std::to_string(ftell_errno));
     }
     return ret;
 }

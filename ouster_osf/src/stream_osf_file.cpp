@@ -20,6 +20,9 @@ namespace osf {
 
 StreamOsfFile::StreamOsfFile(const std::string& filename) : OsfFile(filename) {
     file_stream_ = std::ifstream(filename, std::ios::in | std::ios::binary);
+    if (!file_stream_.is_open()) {
+        throw std::runtime_error("Failed to open OSF file: " + filename);
+    }
     file_stream_.seekg(0, std::ios::end);
     size_ = file_stream_.tellg();
     file_stream_.seekg(0, std::ios::beg);

@@ -1137,7 +1137,8 @@ class LiveConsumer:
         self._stopped = threading.Event()
         self._queue = queue.Queue(1)
         self._iterable = iterable
-        self._consumer_thread = threading.Thread(target=partial(self.__consume))
+        self._consumer_thread = threading.Thread(
+            target=partial(self.__consume), daemon=True)
         self._dropped_frames = 0
         self._should_count_dropped_frame_method = should_count_dropped_frame_method
 
