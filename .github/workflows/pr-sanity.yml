@@ -42,13 +42,17 @@ jobs:
           # the alternation in libgoogle-glog-dev's Depends.
           sudo DEBIAN_FRONTEND=noninteractive apt-get install -y \
               libunwind-dev \
-              clang-tidy-16 ninja-build \
+              ninja-build \
               libeigen3-dev libtins-dev libpcap-dev libcurl4-openssl-dev \
               build-essential cmake zlib1g-dev libglfw3-dev \
               libpng-dev libflatbuffers-dev libtbb-dev robin-map-dev \
               libceres-dev libzstd-dev libzip-dev libssl-dev libgtest-dev
+          # jammy ships clang-tidy 14; the project requires >= 16. Use the
+          # PyPI wheel, same pattern the existing lint job uses for
+          # clang-format.
           python3 -m pip install --quiet --user \
-              "GitPython>=3.1" click flufl.lock pybind11
+              "GitPython>=3.1" click flufl.lock pybind11 \
+              "clang-tidy>=18.0,<19"
       - name: cmake configure (generates compile_commands.json)
         run: |
           cmake -S . -B build -G Ninja \
@@ -60,10 +64,14 @@ jobs:
         # it can parse files that include them
         run: cmake --build build --target cpp_gen ouster_generate_header -j$(nproc)
       - name: run clang-tidy on changed files
+        env:
+          # ensure the pip-installed clang-tidy wheel is on PATH
+          PATH: ${{ env.HOME }}/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
         run: |
+          which clang-tidy
+          clang-tidy --version
           python3 ./scripts/dev.py lint clang-tidy \
             --use-system-libs \
-            --clang-tidy-bin clang-tidy-16 \
             --diff-against origin/${{ github.event.pull_request.base.ref }} \
             --quiet \
             --threads $(nproc)
