@@ -1920,5 +1920,5 @@ def process_commands(click_ctx: click.core.Context, callbacks: Iterable[SourceCo
         finally:
             try:
                 ctx.scan_source.close()
-            except:  # noqa: E722
+            except Exception:
                 pass
