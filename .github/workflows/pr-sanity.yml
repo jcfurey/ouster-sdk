@@ -53,6 +53,9 @@ jobs:
           python3 -m pip install --quiet --user \
               "GitPython>=3.1" click flufl.lock pybind11 \
               "clang-tidy>=18.0,<19"
+          # prepend the pip --user bin dir so the wheel's clang-tidy wins
+          # over the apt-installed 14.
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
       - name: cmake configure (generates compile_commands.json)
         run: |
           cmake -S . -B build -G Ninja \
@@ -64,9 +67,6 @@ jobs:
         # it can parse files that include them
         run: cmake --build build --target cpp_gen ouster_generate_header -j$(nproc)
       - name: run clang-tidy on changed files
-        env:
-          # ensure the pip-installed clang-tidy wheel is on PATH
-          PATH: ${{ env.HOME }}/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
         run: |
           which clang-tidy
           clang-tidy --version
