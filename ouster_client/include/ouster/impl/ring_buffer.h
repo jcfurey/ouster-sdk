@@ -121,8 +121,14 @@ class RingBuffer {
 
     /**
      * Flush the ring buffer, making it empty.
+     *
+     * NOTE: unlike push()/pop(), this races against in-flight producers and
+     * consumers; callers must serialise flush() externally.
      */
-    void flush() { r_idx_ = w_idx_.load(); };
+    void flush() {
+        r_idx_.store(w_idx_.load(std::memory_order_acquire),
+                     std::memory_order_release);
+    };
 
     /**
      * Atomically increment read index.
