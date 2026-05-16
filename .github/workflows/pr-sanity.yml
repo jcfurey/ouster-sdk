@@ -62,6 +62,7 @@ jobs:
       - name: run clang-tidy on changed files
         run: |
           python3 ./scripts/dev.py lint clang-tidy \
+            --use-system-libs \
             --diff-against origin/${{ github.event.pull_request.base.ref }} \
             --quiet \
             --threads $(nproc)
