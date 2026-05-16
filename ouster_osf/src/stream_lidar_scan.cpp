@@ -185,8 +185,8 @@ std::unique_ptr<LidarScan> restore_lidar_scan(
     const auto& buf = msg.buffer();
     {
         flatbuffers::Verifier verifier(buf.data(), buf.size());
-        if (!ouster::sdk::osf::impl::gen::VerifySizePrefixedLidarScanMsgBuffer(
-                verifier)) {
+        if (!verifier.VerifySizePrefixedBuffer<
+                ouster::sdk::osf::impl::gen::LidarScanMsg>(nullptr)) {
             throw std::runtime_error(
                 "restore_lidar_scan: LidarScanMsg flatbuffer failed "
                 "verification");
