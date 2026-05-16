@@ -623,6 +623,12 @@ static PacketType get_packet_type(const PacketFormat& format, uint8_t* buf,
         return PacketType::Imu;
     }
 
+    // Non-legacy profiles read packet_type from the packet header; reject
+    // datagrams too short to contain it so we don't classify on garbage bytes
+    // left in the receive buffer.
+    if (size < format.packet_header_size) {
+        return PacketType::Unknown;
+    }
     uint16_t type = format.packet_type(buf);
     switch (type) {
         case 0x01:
