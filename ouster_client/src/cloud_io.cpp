@@ -237,9 +237,13 @@ PointCloudXYZf read_pointcloud(const std::string& filename) {
                 throw std::runtime_error("Only float fields supported");
             }
             for (int i = 0; i < info.num_vertices; i++) {
-                const uint8_t* ptr = &data[(i * stride) + field.offset];
-                float* dst = &pts[(i * 3) + idx_it->second];
-                memcpy(dst, ptr, 4);
+                const size_t src_idx =
+                    static_cast<size_t>(i) * static_cast<size_t>(stride) +
+                    static_cast<size_t>(field.offset);
+                const size_t dst_idx =
+                    static_cast<size_t>(i) * 3 +
+                    static_cast<size_t>(idx_it->second);
+                memcpy(&pts[dst_idx], &data[src_idx], 4);
             }
         }
     };
