@@ -232,7 +232,13 @@ class mDNSService:
         print("mDNS stopped.")
 
     def __del__(self):
-        self.unregister()
+        try:
+            self.unregister()
+        except Exception:
+            # __del__ may run during interpreter shutdown when zeroconf
+            # internals (sockets, threads) are already torn down; swallowing
+            # any failure here matches Python's own behaviour for __del__.
+            pass
 
 
 class HttpServer():
