@@ -40,13 +40,15 @@ jobs:
           # libceres-dev pulls libgoogle-glog-dev which depends on libunwind;
           # install it explicitly so the apt resolver doesn't get stuck on
           # the alternation in libgoogle-glog-dev's Depends.
-          sudo apt-get install -y libunwind-dev clang-tidy ninja-build
-          # dev.py's bootstrap installs scripts/requirements.txt, but the
-          # auto-install can land in a python that the script's later imports
-          # don't see; pre-install with the same interpreter to make it
-          # deterministic.
-          python3 -m pip install --quiet -r scripts/requirements.txt
-          python3 ./scripts/dev.py utils install-system-packages
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y \
+              libunwind-dev \
+              clang-tidy ninja-build \
+              libeigen3-dev libtins-dev libpcap-dev libcurl4-openssl-dev \
+              build-essential cmake zlib1g-dev libglfw3-dev \
+              libpng-dev libflatbuffers-dev libtbb-dev robin-map-dev \
+              libceres-dev libzstd-dev libzip-dev libssl-dev libgtest-dev
+          python3 -m pip install --quiet --break-system-packages \
+              "GitPython>=3.1" click flufl.lock
       - name: cmake configure (generates compile_commands.json)
         run: |
           cmake -S . -B build -G Ninja \
@@ -86,9 +88,13 @@ jobs:
           sudo add-apt-repository -y universe
           sudo apt-get update -qq
           # see clang-tidy job for the libunwind-dev rationale
-          sudo apt-get install -y libunwind-dev ninja-build
-          python3 -m pip install --quiet -r scripts/requirements.txt
-          python3 ./scripts/dev.py utils install-system-packages
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y \
+              libunwind-dev \
+              ninja-build \
+              libeigen3-dev libtins-dev libpcap-dev libcurl4-openssl-dev \
+              build-essential cmake zlib1g-dev libglfw3-dev \
+              libpng-dev libflatbuffers-dev libtbb-dev robin-map-dev \
+              libceres-dev libzstd-dev libzip-dev libssl-dev libgtest-dev
       - name: cmake configure (${{ matrix.sanitizer }})
         run: |
           cmake -S . -B build -G Ninja \
