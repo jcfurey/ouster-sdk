@@ -47,7 +47,7 @@ jobs:
               build-essential cmake zlib1g-dev libglfw3-dev \
               libpng-dev libflatbuffers-dev libtbb-dev robin-map-dev \
               libceres-dev libzstd-dev libzip-dev libssl-dev libgtest-dev
-          python3 -m pip install --quiet --break-system-packages \
+          python3 -m pip install --quiet --user \
               "GitPython>=3.1" click flufl.lock
       - name: cmake configure (generates compile_commands.json)
         run: |
