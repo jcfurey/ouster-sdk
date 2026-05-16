@@ -36,6 +36,8 @@ rules.ninja
 *.a
 **/_build
 clang-tidy-output.{txt,json}
+clang-tidy-new-warnings.json
+clang-tidy-fixes-*.yaml
 
 #npm
 node_modules/
