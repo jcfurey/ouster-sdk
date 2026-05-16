@@ -58,3 +58,47 @@ jobs:
             --diff-against origin/${{ github.event.pull_request.base.ref }} \
             --quiet \
             --threads $(nproc)
+
+  sanitizer-build:
+    name: ${{ matrix.sanitizer }} build + ctest
+    runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - sanitizer: asan-ubsan
+            flags: "-fsanitize=address,undefined -fno-omit-frame-pointer -fno-sanitize-recover=undefined"
+            ld_flags: "-fsanitize=address,undefined"
+          - sanitizer: tsan
+            flags: "-fsanitize=thread -fno-omit-frame-pointer"
+            ld_flags: "-fsanitize=thread"
+    steps:
+      - uses: actions/checkout@v4
+      - name: install deps
+        run: |
+          sudo apt-get update -qq
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y \
+              build-essential cmake ninja-build \
+              libeigen3-dev libcurl4-openssl-dev libtins-dev libpcap-dev \
+              libglfw3-dev libpng-dev libflatbuffers-dev libceres-dev \
+              libtbb-dev libssl-dev libzip-dev libzstd-dev \
+              robin-map-dev zlib1g-dev libgtest-dev
+      - name: cmake configure (${{ matrix.sanitizer }})
+        run: |
+          cmake -S . -B build -G Ninja \
+            -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+            -DBUILD_TESTING=ON \
+            -DBUILD_EXAMPLES=OFF \
+            -DBUILD_PYTHON_MODULE=OFF \
+            -DCMAKE_C_FLAGS="${{ matrix.flags }}" \
+            -DCMAKE_CXX_FLAGS="${{ matrix.flags }}" \
+            -DCMAKE_EXE_LINKER_FLAGS="${{ matrix.ld_flags }}" \
+            -DCMAKE_SHARED_LINKER_FLAGS="${{ matrix.ld_flags }}"
+      - name: build
+        run: cmake --build build -j$(nproc)
+      - name: ctest
+        env:
+          ASAN_OPTIONS: "detect_leaks=1:halt_on_error=1:abort_on_error=1:print_stacktrace=1"
+          UBSAN_OPTIONS: "halt_on_error=1:abort_on_error=1:print_stacktrace=1"
+          TSAN_OPTIONS: "halt_on_error=1:second_deadlock_stack=1"
+        run: cd build && ctest -j$(nproc) --output-on-failure
