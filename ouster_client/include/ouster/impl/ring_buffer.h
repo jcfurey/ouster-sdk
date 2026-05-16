@@ -133,9 +133,10 @@ class RingBuffer {
         if (empty()) {
             throw std::underflow_error("popped an empty ring buffer");
         }
-        size_t read_idx = r_idx_.load();
-        while (!r_idx_.compare_exchange_strong(read_idx,
-                                               (read_idx + 1) % _capacity())) {
+        size_t read_idx = r_idx_.load(std::memory_order_acquire);
+        while (!r_idx_.compare_exchange_weak(
+            read_idx, (read_idx + 1) % _capacity(),
+            std::memory_order_release, std::memory_order_acquire)) {
         }
     }
 
@@ -148,10 +149,11 @@ class RingBuffer {
         if (full()) {
             throw std::overflow_error("pushed a full ring buffer");
         }
-        size_t write_idx = w_idx_.load();
+        size_t write_idx = w_idx_.load(std::memory_order_acquire);
         // atomic increment modulo
-        while (!w_idx_.compare_exchange_strong(write_idx,
-                                               (write_idx + 1) % _capacity())) {
+        while (!w_idx_.compare_exchange_weak(
+            write_idx, (write_idx + 1) % _capacity(),
+            std::memory_order_release, std::memory_order_acquire)) {
         }
     }
 };
