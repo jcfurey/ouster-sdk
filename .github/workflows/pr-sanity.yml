@@ -42,7 +42,7 @@ jobs:
           # the alternation in libgoogle-glog-dev's Depends.
           sudo DEBIAN_FRONTEND=noninteractive apt-get install -y \
               libunwind-dev \
-              clang-tidy ninja-build \
+              clang-tidy-16 ninja-build \
               libeigen3-dev libtins-dev libpcap-dev libcurl4-openssl-dev \
               build-essential cmake zlib1g-dev libglfw3-dev \
               libpng-dev libflatbuffers-dev libtbb-dev robin-map-dev \
@@ -63,6 +63,7 @@ jobs:
         run: |
           python3 ./scripts/dev.py lint clang-tidy \
             --use-system-libs \
+            --clang-tidy-bin clang-tidy-16 \
             --diff-against origin/${{ github.event.pull_request.base.ref }} \
             --quiet \
             --threads $(nproc)
