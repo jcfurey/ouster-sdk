@@ -145,8 +145,8 @@ class RingBuffer {
         }
         size_t read_idx = r_idx_.load(std::memory_order_acquire);
         while (!r_idx_.compare_exchange_weak(
-            read_idx, (read_idx + 1) % _capacity(),
-            std::memory_order_release, std::memory_order_acquire)) {
+            read_idx, (read_idx + 1) % _capacity(), std::memory_order_release,
+            std::memory_order_acquire)) {
         }
     }
 
@@ -162,8 +162,8 @@ class RingBuffer {
         size_t write_idx = w_idx_.load(std::memory_order_acquire);
         // atomic increment modulo
         while (!w_idx_.compare_exchange_weak(
-            write_idx, (write_idx + 1) % _capacity(),
-            std::memory_order_release, std::memory_order_acquire)) {
+            write_idx, (write_idx + 1) % _capacity(), std::memory_order_release,
+            std::memory_order_acquire)) {
         }
     }
 };
