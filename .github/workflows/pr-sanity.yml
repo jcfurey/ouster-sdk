@@ -41,9 +41,12 @@ jobs:
           # install it explicitly so the apt resolver doesn't get stuck on
           # the alternation in libgoogle-glog-dev's Depends.
           sudo apt-get install -y libunwind-dev clang-tidy ninja-build
+          # dev.py's bootstrap installs scripts/requirements.txt, but the
+          # auto-install can land in a python that the script's later imports
+          # don't see; pre-install with the same interpreter to make it
+          # deterministic.
+          python3 -m pip install --quiet -r scripts/requirements.txt
           python3 ./scripts/dev.py utils install-system-packages
-          python3 -m pip install --quiet --break-system-packages \
-              "GitPython>=3.1" click
       - name: cmake configure (generates compile_commands.json)
         run: |
           cmake -S . -B build -G Ninja \
@@ -84,6 +87,7 @@ jobs:
           sudo apt-get update -qq
           # see clang-tidy job for the libunwind-dev rationale
           sudo apt-get install -y libunwind-dev ninja-build
+          python3 -m pip install --quiet -r scripts/requirements.txt
           python3 ./scripts/dev.py utils install-system-packages
       - name: cmake configure (${{ matrix.sanitizer }})
         run: |
