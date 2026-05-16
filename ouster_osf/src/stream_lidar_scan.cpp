@@ -183,6 +183,15 @@ std::unique_ptr<LidarScan> restore_lidar_scan(
     const MessageRef& msg, const SensorInfo& info,
     const nonstd::optional<std::vector<std::string>>& fields_to_decode) {
     const auto& buf = msg.buffer();
+    {
+        flatbuffers::Verifier verifier(buf.data(), buf.size());
+        if (!ouster::sdk::osf::impl::gen::VerifySizePrefixedLidarScanMsgBuffer(
+                verifier)) {
+            throw std::runtime_error(
+                "restore_lidar_scan: LidarScanMsg flatbuffer failed "
+                "verification");
+        }
+    }
     auto ls_msg = flatbuffers::GetSizePrefixedRoot<
         ouster::sdk::osf::impl::gen::LidarScanMsg>(buf.data());
 
