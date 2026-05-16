@@ -21,3 +21,40 @@ jobs:
             --base origin/${{ github.event.pull_request.base.ref }} \
             --head HEAD \
             --window 200
+
+  clang-tidy:
+    name: clang-tidy on changed files
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: fetch base
+        run: git fetch origin ${{ github.event.pull_request.base.ref }} --depth=50
+      - name: install build deps
+        run: |
+          sudo apt-get update -qq
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y \
+              build-essential cmake ninja-build clang-tidy \
+              libeigen3-dev libcurl4-openssl-dev libtins-dev libpcap-dev \
+              libglfw3-dev libpng-dev libflatbuffers-dev libceres-dev \
+              libtbb-dev libssl-dev libzip-dev libzstd-dev \
+              robin-map-dev zlib1g-dev libgtest-dev python3 python3-pip
+          python3 -m pip install --quiet --break-system-packages \
+              "GitPython>=3.1" click
+      - name: cmake configure (generates compile_commands.json)
+        run: |
+          cmake -S . -B build -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+            -DBUILD_TESTING=ON -DBUILD_EXAMPLES=ON
+      - name: build generated headers
+        # clang-tidy needs the flatbuffers-generated headers to exist before
+        # it can parse files that include them
+        run: cmake --build build --target cpp_gen ouster_generate_header -j$(nproc)
+      - name: run clang-tidy on changed files
+        run: |
+          python3 ./scripts/dev.py lint clang-tidy \
+            --diff-against origin/${{ github.event.pull_request.base.ref }} \
+            --quiet \
+            --threads $(nproc)
