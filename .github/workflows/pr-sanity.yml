@@ -1,0 +1,23 @@
+name: PR Sanity Checks
+
+on:
+  pull_request:
+    branches: [master]
+
+jobs:
+  revert-regression:
+    name: detect re-introduced regressions
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # need history to scan recent fix commits on base
+          fetch-depth: 0
+      - name: fetch base
+        run: git fetch origin ${{ github.event.pull_request.base.ref }} --depth=300
+      - name: run revert-regression check
+        run: |
+          python3 .github/scripts/check_revert_regression.py \
+            --base origin/${{ github.event.pull_request.base.ref }} \
+            --head HEAD \
+            --window 200
