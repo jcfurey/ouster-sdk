@@ -367,7 +367,8 @@ size_t ChunkRef::size() const {
 }
 
 bool ChunkRef::valid() const {
-    return (state()->status == ChunkValidity::VALID);
+    const ChunkState* s = state();
+    return s != nullptr && s->status == ChunkValidity::VALID;
 }
 
 std::unique_ptr<const MessageRef> ChunkRef::messages(size_t msg_idx) const {
@@ -439,9 +440,21 @@ std::string ChunkRef::to_string() const {
 
 uint64_t ChunkRef::offset() const { return chunk_offset_; }
 
-ts_t ChunkRef::start_ts() const { return state()->start_ts; }
+ts_t ChunkRef::start_ts() const {
+    const ChunkState* s = state();
+    if (s == nullptr) {
+        throw std::runtime_error("ChunkRef::start_ts: chunk state is missing");
+    }
+    return s->start_ts;
+}
 
-ts_t ChunkRef::end_ts() const { return state()->end_ts; }
+ts_t ChunkRef::end_ts() const {
+    const ChunkState* s = state();
+    if (s == nullptr) {
+        throw std::runtime_error("ChunkRef::end_ts: chunk state is missing");
+    }
+    return s->end_ts;
+}
 
 // ==========================================================
 // ========= MessagesChunkIter ==============================
