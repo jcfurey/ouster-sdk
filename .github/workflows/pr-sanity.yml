@@ -31,15 +31,17 @@ jobs:
           fetch-depth: 0
       - name: fetch base
         run: git fetch origin ${{ github.event.pull_request.base.ref }} --depth=50
+      - name: install python
+        run: sudo apt-get install -y python3 python3-pip python3-venv
       - name: install build deps
         run: |
+          sudo add-apt-repository -y universe
           sudo apt-get update -qq
-          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y \
-              build-essential cmake ninja-build clang-tidy \
-              libeigen3-dev libcurl4-openssl-dev libtins-dev libpcap-dev \
-              libglfw3-dev libpng-dev libflatbuffers-dev libceres-dev \
-              libtbb-dev libssl-dev libzip-dev libzstd-dev \
-              robin-map-dev zlib1g-dev libgtest-dev python3 python3-pip
+          # libceres-dev pulls libgoogle-glog-dev which depends on libunwind;
+          # install it explicitly so the apt resolver doesn't get stuck on
+          # the alternation in libgoogle-glog-dev's Depends.
+          sudo apt-get install -y libunwind-dev clang-tidy ninja-build
+          python3 ./scripts/dev.py utils install-system-packages
           python3 -m pip install --quiet --break-system-packages \
               "GitPython>=3.1" click
       - name: cmake configure (generates compile_commands.json)
@@ -74,15 +76,15 @@ jobs:
             ld_flags: "-fsanitize=thread"
     steps:
       - uses: actions/checkout@v4
+      - name: install python
+        run: sudo apt-get install -y python3 python3-pip python3-venv
       - name: install deps
         run: |
+          sudo add-apt-repository -y universe
           sudo apt-get update -qq
-          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y \
-              build-essential cmake ninja-build \
-              libeigen3-dev libcurl4-openssl-dev libtins-dev libpcap-dev \
-              libglfw3-dev libpng-dev libflatbuffers-dev libceres-dev \
-              libtbb-dev libssl-dev libzip-dev libzstd-dev \
-              robin-map-dev zlib1g-dev libgtest-dev
+          # see clang-tidy job for the libunwind-dev rationale
+          sudo apt-get install -y libunwind-dev ninja-build
+          python3 ./scripts/dev.py utils install-system-packages
       - name: cmake configure (${{ matrix.sanitizer }})
         run: |
           cmake -S . -B build -G Ninja \
