@@ -101,6 +101,10 @@ def install_doxygen_linux(ctx, version="1.11.0"):
 
 def install_system_packages_apt(ctx, doxygen=False, clangformat=False):
     packages = [
+        # libceres-dev pulls libgoogle-glog-dev which Depends:
+        # libunwind-dev | libunwind7-dev. List libunwind-dev explicitly so
+        # the apt resolver doesn't stall on the alternation.
+        'libunwind-dev',
         'libeigen3-dev', 'libtins-dev',
         'libpcap-dev', 'libcurl4-openssl-dev',
         'git', 'build-essential', 'cmake',
