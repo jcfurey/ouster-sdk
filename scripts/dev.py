@@ -22,17 +22,22 @@ def bootstrap_requirements():
     except ImportError:
         pass
     print("Installing required dependencies...")
+    pip_args = [sys.executable, "-m", "pip", "install", "-q", "-r",
+                requirements_file]
     try:
-        subprocess.check_call([
-            sys.executable, "-m", "pip", "install", "-q", "-r",
-            requirements_file
-        ])
+        subprocess.check_call(pip_args)
         print("Dependencies installed successfully!")
-    except subprocess.CalledProcessError as e:
-        print(f"Failed to install requirements: {e}", file=sys.stderr)
-        print("Please run manually: pip3 install -r ./scripts/requirements.txt",
-              file=sys.stderr)
-        sys.exit(1)
+    except subprocess.CalledProcessError:
+        # PEP 668 (Homebrew Python, Debian system Python) refuses installs
+        # into the system interpreter without --break-system-packages.
+        try:
+            subprocess.check_call(pip_args + ["--break-system-packages"])
+            print("Dependencies installed successfully!")
+        except subprocess.CalledProcessError as e:
+            print(f"Failed to install requirements: {e}", file=sys.stderr)
+            print("Please run manually: pip3 install --break-system-packages "
+                  "-r ./scripts/requirements.txt", file=sys.stderr)
+            sys.exit(1)
     except FileNotFoundError:
         print("pip not found. Please install pip and try again.",
               file=sys.stderr)
